@@ -1,0 +1,251 @@
+
+'Moderate
+'Create a script that will loop through all the stocks for one year for each run and take the following information.
+
+'The ticker symbol.
+'Yearly change from opening price at the beginning of a given year to the closing price at the end of that year.
+'The percent change from opening price at the beginning of a given year to the closing price at the end of that year.
+'The total stock volume of the stock.
+
+'You should also have conditional formatting that will highlight positive change in green and negative change in red.
+
+Sub FindYearlyChange()
+
+Dim ws As Worksheet
+'Set ws = ActiveWorkbook.Worksheets(1)
+
+Dim lastrow As Long
+Dim tic_cur As String
+'Dim d_cur As Integer
+Dim y_cur As Integer
+'Dim open_price As Double
+'Dim close_price As Double
+Dim volume As Long
+Dim min_yr As Integer
+Dim max_yr As Integer
+Dim r As range
+'Dim min_dt As Integer
+'Dim max_dt As Integer
+'Dim min_open_price As Double
+'Dim max_close_price As Double
+'Dim yr_ch As Double
+'Dim percent_ch As Double
+
+
+For Each ws In Worksheets
+    lastrow = ws.Cells(ws.Rows.count, "A").End(xlUp).Row
+    
+    ws.range("I1").EntireColumn.Insert
+    ws.range("J1").EntireColumn.Insert
+    ws.range("K1").EntireColumn.Insert
+    ws.range("L1").EntireColumn.Insert
+    ws.range("I1").Value = "Ticker"
+    ws.range("J1").Value = "Yearly Change"
+    ws.range("K1").Value = "Percent Change"
+    ws.range("L1").Value = "Total Stock Volume"
+    
+    'Get unique ticker list
+    q = UniqueList(ws)
+    tic_lastrow = (ws.Cells(ws.Rows.count, "I").End(xlUp).Row)
+    
+    'Determine years range to loop through
+    max_yr = 0
+    min_yr = 0
+    Dim rg As range
+    Set rg = ws.range("B2:B" & lastrow)
+    
+    min_yr = CInt(Left(WorksheetFunction.Min(rg), 4))
+    max_yr = CInt(Left(WorksheetFunction.Max(rg), 4))
+       
+    'iterate by year
+    For y = min_yr To max_yr
+                
+        'loop through each ticker
+        lookup_lastrow = ws.Cells(ws.Rows.count, "I").End(xlUp).Row
+        
+        For Each r In ws.range("I2:I" & lookup_lastrow)
+            
+            min_dt = 0
+            max_dt = 0
+            
+            min_open_price = Null
+            max_close_price = Null
+            
+            yr_ch = Null
+            percent_ch = Null
+
+            
+            'loop through all rows
+            
+            'For i = 2 To lastrow
+            For i = r.Offset(0, 5).Value To r.Offset(0, 6).Value
+            
+                y_cur = CInt(Left(ws.Cells(i, 2).Value, 4))
+                d_cur = ws.Cells(i, 2).Value
+                tic_cur = ws.Cells(i, 1).Value
+                volume = ws.Cells(i, 7).Value
+                open_price = ws.Cells(i, 3).Value
+                close_price = ws.Cells(i, 6).Value
+                
+                If y_cur = y Then
+                
+                    If r.Value = tic_cur Then
+                
+                        'lookup ticker and get total stock volume
+                        m = LookupTicker(ws, tic_cur)
+                        tot_stock_vol = ws.range(m).Offset(0, 3).Value
+                        
+                        'add volume to total stock volume
+                        tot_stock_vol = tot_stock_vol + volume
+                        ws.range(m).Offset(0, 3).Value = tot_stock_vol
+                 
+                        'check for min_date and max_date of the year for the ticker
+                        If d_cur < min_dt Or min_dt = 0 Then
+                        
+                            min_dt = d_cur
+                            min_open_price = open_price
+                            
+                        End If
+                            
+                        If d_cur > max_dt Or max_dt = 0 Then
+                        
+                            max_dt = d_cur
+                            max_close_price = close_price
+                            
+                        End If
+                        
+                    End If
+                
+                End If
+            
+            Next i
+            
+            
+            'calculate yearly change
+            If Not IsNull(max_close_price) Then
+            If max_close_price > 0 Then
+            
+                yr_ch = CDbl(max_close_price) - CDbl(min_open_price)
+                r.Offset(0, 1).Value = CDbl(yr_ch)
+            End If
+            End If
+            
+            'format the positive and negative
+            If Not IsNull(yr_ch) Then
+            
+                If yr_ch > 0 Then
+                    
+                    r.Offset(0, 1).Interior.ColorIndex = 4 'Green
+                
+                ElseIf yr_ch < 0 Then
+                    
+                    r.Offset(0, 1).Interior.ColorIndex = 3 'Red
+                End If
+            End If
+            
+                        
+            'calculate percent change
+            If Not IsNull(min_open_price) Then
+            If min_open_price <> 0 Then
+            
+                percent_ch = (CDbl(yr_ch) / CDbl(min_open_price)) * 100
+                '(r.Offset(0, 1).Value / min_open_price) * 100
+                r.Offset(0, 2).Value = Round(CDbl(percent_ch), 2)
+                
+            Else
+            
+                r.Offset(0, 2).Value = Null
+                
+            End If
+          End If
+        'MsgBox (y & "yr - " & r.Value & " : " & min_open_price & " - " & max_close_price & " - change: " & yr_ch & " % : " & percent_ch)
+        Next
+        
+    Next y
+
+
+ws.range("N2:N" & lookup_lastrow).Value = Null
+ws.range("O2:O" & lookup_lastrow).Value = Null
+
+'MsgBox ("Sheet Completed! " & ws.Name)
+Next
+
+
+MsgBox ("Run Completed!")
+
+End Sub
+
+
+Function UniqueList(w As Worksheet) As String
+
+Dim ws As Worksheet
+Set ws = w
+lastrow = ws.Cells(ws.Rows.count, "A").End(xlUp).Row
+
+Dim uniqueArray() As Variant
+Dim firstrowArray() As Variant
+Dim lastrowArray() As Variant
+
+Dim count As Integer
+Dim notUnique As Boolean
+
+ReDim uniqueArray(0) As Variant
+ReDim firstrowArray(0) As Variant
+ReDim lastrowArray(0) As Variant
+uniqueArray(0) = ws.range("A2")
+firstrowArray(0) = ws.range("A2").Row
+
+lastrowArray(0) = ws.range("A2").Row
+
+count = 0
+
+Dim cl As range
+For Each cl In ws.range("A2:A" & lastrow)
+    notUnique = False
+    For i = LBound(uniqueArray) To UBound(uniqueArray)
+        If (cl.Value = uniqueArray(i)) Then
+            notUnique = True
+            lastrowArray(count) = cl.Row
+            Exit For
+        End If
+    Next i
+    
+    If notUnique = False Then
+        count = count + 1
+        ReDim Preserve uniqueArray(count) As Variant
+        uniqueArray(UBound(uniqueArray)) = cl.Value
+        
+        ReDim Preserve firstrowArray(count) As Variant
+        firstrowArray(UBound(firstrowArray)) = cl.Row
+        
+        ReDim Preserve lastrowArray(count) As Variant
+        lastrowArray(UBound(lastrowArray)) = cl.Row
+    End If
+Next cl
+
+For i = LBound(uniqueArray) To UBound(uniqueArray)
+    ws.range("I2").Offset(i, 0) = uniqueArray(i)
+    ws.range("I2").Offset(i, 3) = 0
+    ws.range("I2").Offset(i, 5) = firstrowArray(i)
+    ws.range("I2").Offset(i, 6) = lastrowArray(i)
+Next i
+
+End Function
+
+Function LookupTicker(w As Worksheet, t As String) As String
+
+Dim ws As Worksheet
+Set ws = w
+lookup_lastrow = ws.Cells(ws.Rows.count, "I").End(xlUp).Row
+
+For Each r In ws.range("I2:I" & lookup_lastrow)
+    If r.Value = t Then
+        LookupTicker = r.Address
+        Exit Function
+    End If
+Next
+
+End Function
+
+
+
