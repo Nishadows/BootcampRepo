@@ -50,8 +50,7 @@ d3.csv("assets/data/data.csv").then(function(statedata){
     .attr("r", 10)
     .attr("cx",xMap)
     .attr("cy",yMap)
-    .style("fill","#5773a1");
-    // "#98daf5");
+    .style("fill","#67a8d6");
 
     chartGroup.selectAll("g").data(statedata)
     .enter()    
