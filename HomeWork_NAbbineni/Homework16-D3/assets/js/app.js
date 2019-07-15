@@ -39,10 +39,8 @@ d3.csv("assets/data/data.csv").then(function(statedata){
     .range([height, 0]);
 
     var yMap = function(d){
-        return yScale(yValue(d));
+        return yScale(yValue(d));    
     };
-
-    var dotValue = function(d) { return d.abbr;};
 
     chartGroup.selectAll("g").data(statedata)
     .enter()   
@@ -89,8 +87,6 @@ d3.csv("assets/data/data.csv").then(function(statedata){
     .attr("fill", "black")
     .text("Lack of Healthcare (%)");
 
-    
-    circle = svg.selectAll("circle").data(dotvalue(statedata));
 });
 
 
